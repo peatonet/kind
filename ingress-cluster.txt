@@ -24,7 +24,7 @@ nodes:
   - role: worker
 EOF
 
-~/Packages/kind/bin/kind create cluster --name ingress-cluster --config cluster.yaml
+kind create cluster --name ingress-cluster --config cluster.yaml
 
 #List clusters
 kind get clusters

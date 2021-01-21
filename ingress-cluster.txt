@@ -1,3 +1,5 @@
+#https://dustinspecker.com/posts/test-ingress-in-kind/
+
 #Create KIND cluster
 cat << EOF > cluster.yaml
 kind: Cluster

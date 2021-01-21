@@ -1,0 +1,79 @@
+#/bin/bash
+
+#Create KIND cluster
+cat << EOF > cluster.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+  - role: worker
+  - role: worker
+EOF
+
+~/Packages/kind/bin/kind create cluster --name ingress-cluster --config cluster.yaml
+
+#List clusters
+kind get clusters
+
+#List cluster nodes
+kind get nodes --name ingress-cluster
+
+#Deploy nginx-ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/kind/deploy.yaml
+
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s
+
+#Create a K8s service with a plaintext response by running
+kubectl run hello \
+  --expose \
+  --image nginxdemos/hello:plain-text \
+  --port 80
+
+#Create the K8s ingress
+cat << EOF > ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello
+spec:
+  rules:
+    - host: hello.amonaco.com
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            backend:
+              service:
+                name: hello
+                port:
+                  number: 80
+EOF
+
+kubectl apply -f ingress.yaml
+
+#Get the ingress IP
+IP=`docker container inspect ingress-cluster-control-plane \
+  --format '{{ .NetworkSettings.Networks.kind.IPAddress }}'`
+
+#Request ingress endpoint from Docker container
+docker run \
+  --add-host hello.amonaco.com:$IP \
+  --net kind \
+  --rm \
+  curlimages/curl:7.71.0 hello.amonaco.com

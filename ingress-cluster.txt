@@ -1,5 +1,3 @@
-#/bin/bash
-
 #Create KIND cluster
 cat << EOF > cluster.yaml
 kind: Cluster

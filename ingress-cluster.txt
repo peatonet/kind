@@ -77,3 +77,6 @@ docker run \
   --net kind \
   --rm \
   curlimages/curl:7.71.0 hello.amonaco.com
+
+#Delete the KIND cluster
+kind delete cluster --name ingress-cluster
